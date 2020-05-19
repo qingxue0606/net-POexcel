@@ -66,8 +66,8 @@
     <div class=" topTitle">
         <ul>
             <li class="pd-left">销售订单管理系统示例</li>
-            <li><font>当前用户：</font>admin</li>
-            <li><font>当前系统日期：</font><asp:Literal ID="LitDate" runat="server"></asp:Literal></li>
+            <li><font>当前用户：</font>@Html.Raw(ViewBag.userName)</li>
+            <li><font>当前系统日期：</font>@Html.Raw(ViewBag.Data)</li>
             <li><font>当前模块：</font>只读查看^打印订单</li>
         </ul>
     </div>

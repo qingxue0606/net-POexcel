@@ -25,13 +25,18 @@
     <script type="text/javascript">
         function Delete(id) {
             if (confirm("你确认要删除该客户信息及其相关订单信息吗？")) {
-                location.href = "OrderList.jsp?ID=" + id;
+                location.href = "/Order/delete?ID=" + id;
                 return true;
             }
             else {
                 return false;
             }
         }
+
+        function refreshIndex() {
+            location.href = "/";
+        }
+
     </script>
 
 </head>
@@ -58,7 +63,7 @@
     <div class=" topTitle">
         <ul>
             <li class="pd-left">销售订单管理系统示例</li>
-            <li><font>当前用户：</font><%= userName%></li>
+            <li><font>当前用户：</font>@Html.Raw(ViewBag.userName)</li>
             <li><font>当前系统日期：</font>@Html.Raw(ViewBag.Data)</li>
             <li><font>当前模块：</font>订单列表</li>
         </ul>
@@ -71,11 +76,11 @@
                 <h2 class="fs-12">
                     用户功能区
                 </h2>
-                <li style="background: #d0eaf7; display: block;"><a href="OrderList.aspx">订单列表</a></li>
-                <li><a href="javascript:POBrowser.openWindow('Order/NewOrder', 'width=1200px;height=800px;');">新建订单</a></li>
-                <li><a href="javascript:POBrowser.openWindow('Order/OrderStat', 'width=1200px;height=800px;');">统计图表</a></li>
-                <li><a href="javascript:POBrowser.openWindow('Order/OrderStat2', 'width=1200px;height=800px;');">查询表</a></li>
-                <li class="bo-n"><a href="logout.aspx">退出系统</a></li>
+                <li style="background: #d0eaf7; display: block;"><a href="/">订单列表</a></li>
+                <li><a href="javascript:POBrowser.openWindowModeless('Order/NewOrder', 'width=1200px;height=800px;');">新建订单</a></li>
+                <li><a href="javascript:POBrowser.openWindowModeless('Order/OrderStat', 'width=1200px;height=800px;');">统计图表</a></li>
+                <li><a href="javascript:POBrowser.openWindowModeless('Order/OrderStat2', 'width=1200px;height=800px;');">查询表</a></li>
+                <li class="bo-n"><a href="/Logout">退出系统</a></li>
             </ul>
         </div>
         <div class="zz-contentRight fl">

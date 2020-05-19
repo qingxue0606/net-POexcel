@@ -3,18 +3,11 @@
     Layout = null;
 }
 
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <link href="/css/style2.css" rel="stylesheet" type="text/css" />
-    <!--[if lte IE 6]>
-    <script type="text/javascript" src="js/belatedPNG.js"></script>
-    <script type="text/javascript">
-      DD_belatedPNG.fix('.png_bg,.png_bg a:hover,img,li');
-    </script>
-    <![endif]-->
     <title>登录列表</title>
 
     <script type="text/javascript">
@@ -22,8 +15,8 @@
             document.getElementById("PageOfficeCtrl1").WebSave();
             if (document.getElementById("PageOfficeCtrl1").CustomSaveResult != "error") {
                 document.getElementById("PageOfficeCtrl1").Alert('保存成功！');
-                POBrowser.closeWindow();//关闭当前POBrower弹出的窗口
-                POBrowser.callParentJs("refreshIndex()");//调用父页面的刷新页面的js函数
+                window.external.CallParentFunc("refreshIndex()");
+                window.external.close();
             }
         }
 
@@ -56,8 +49,8 @@
     <div class=" topTitle">
         <ul>
             <li class="pd-left">销售订单管理系统示例</li>
-            <li><font>当前用户：</font>admin</li>
-            <li><font>当前系统日期：</font><asp:Literal ID="LitDate" runat="server"></asp:Literal></li>
+            <li><font>当前用户：</font>@Html.Raw(ViewBag.userName)</li>
+            <li><font>当前系统日期：</font>@Html.Raw(ViewBag.Data)</li>
             <li><font>当前模块：</font>新建订单</li>
         </ul>
     </div>

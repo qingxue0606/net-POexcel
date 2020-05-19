@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
@@ -29,8 +30,36 @@ namespace POexcel.Controllers
 
         }
 
+        [Route("/Login")]
+        public IActionResult Login()
+        {
+            String tz = Request.Query["tz"];
+            if (tz != null && tz.Length > 0)
+            {
+                if ((Request.Form["TextUserName"].ToString() == "admin") && (Request.Form["TextPassword"].ToString() == "123"))
+                {
+                    HttpContext.Session.SetString("UserName", "admin");//放置string数据
+                    return Redirect("/");
+                }
+            }
+            return View();
+        }
+        [Route("/Logout")]
+        public IActionResult Logout()
+        {
+            HttpContext.Session.SetString("UserName", "");
+            return Redirect("/");
+        }
+
         public IActionResult Index()
         {
+            //获取index.aspx页面传递过来参数的值
+            String userName = HttpContext.Session.GetString("UserName");
+            if (userName == null || userName.Length <= 0)
+            {
+                return Redirect("/Login");
+            }
+
             string sql = "select * from OrderMaster order by id desc ";
             SqliteConnection conn = new SqliteConnection(connString);
 
@@ -42,8 +71,8 @@ namespace POexcel.Controllers
             StringBuilder strHtmls = new StringBuilder();
 
 
-                while (dr.Read())
-                {
+            while (dr.Read())
+            {
                 strHtmls.Append("<tr>\n");
                 strHtmls.Append("<td>" + dr["OrderNum"] + "</td>");
                 if (dr["OrderDate"] != null && dr["OrderDate"].ToString().Trim().Length > 0)
@@ -67,22 +96,17 @@ namespace POexcel.Controllers
                 }
                 strHtmls.Append("<td>\n");
                 strHtmls.Append("<div class='ul-page'>\n");
-                strHtmls.Append("<a href=\"javascript:POBrowser.openWindow('Order/OpenOrder?ID=" + dr["ID"] + "', 'width=1200px;height=800px;');\" >修改</a>|<a href= \"javascript:POBrowser.openWindow('Order/ViewOrder?ID=" + dr["ID"] + "', 'width=1200px;height=800px;');\" >只读查看^打印</a>|<a  onclick='Delete(" + dr["ID"] + ")' >删除</a>\n");
+                strHtmls.Append("<a href=\"javascript:POBrowser.openWindowModeless('Order/OpenOrder?ID=" + dr["ID"] + "', 'width=1200px;height=800px;');\" >修改</a>|<a href= \"javascript:POBrowser.openWindowModeless('Order/ViewOrder?ID=" + dr["ID"] + "', 'width=1200px;height=800px;');\" >只读查看^打印</a>|<a  onclick='Delete(" + dr["ID"] + ")' >删除</a>\n");
                 strHtmls.Append("</div>\n");
                 strHtmls.Append("</td>\n");
                 strHtmls.Append("</tr>\n");
             }
-            
+
             dr.Close();
             conn.Close();
-
             ViewBag.strHtmls = strHtmls;
-
-
             ViewBag.Data = DateTime.Now.ToShortDateString() + "    " + "星期" + DateTime.Now.DayOfWeek.ToString(("D"));
-
-
-
+            ViewBag.userName = HttpContext.Session.GetString("UserName");
             return View();
         }
 

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.VisualBasic;
@@ -14,22 +15,24 @@ namespace POexcel.Controllers.Order
 {
     public class OrderController : Controller
     {
-
         protected string strErrHtml = "";//错误提示
         private string connString;
-
         private readonly IWebHostEnvironment _webHostEnvironment;
 
         public OrderController(IWebHostEnvironment webHostEnvironment)
         {
             _webHostEnvironment = webHostEnvironment;
-            string dataPath = _webHostEnvironment.WebRootPath.Replace("/", "\\");
-            dataPath = dataPath.Substring(0, dataPath.Length - 7) + "appData\\" + "demo_poexcel.db";
+            string rootPath = _webHostEnvironment.WebRootPath.Replace("/", "\\");
+            string dataPath = rootPath.Substring(0, rootPath.Length - 7) + "appData\\" + "demo_poexcel.db";
             connString = "Data Source=" + dataPath;
         }
         public IActionResult OpenOrder()
         {
-
+            String userName = HttpContext.Session.GetString("UserName");
+            if (userName == null || userName.Length <= 0)
+            {
+                return Redirect("/Login");
+            }
             string id = Request.Query["ID"];
             string sql = "select * from OrderMaster where ID=" + id;
             SqliteConnection conn = new SqliteConnection(connString);
@@ -44,8 +47,8 @@ namespace POexcel.Controllers.Order
             PageOfficeNetCore.ExcelWriter.Workbook workBook = new PageOfficeNetCore.ExcelWriter.Workbook();
             //workBook.DisableSheetDoubleClick = true;
             PageOfficeNetCore.ExcelWriter.Sheet sheet = workBook.OpenSheet("销售订单");
-            if (dr.Read()) {
-
+            if (dr.Read())
+            {
                 sheet.OpenCell("D5").Value = dr["CustName"].ToString();
                 sheet.OpenCell("D5").SubmitName = "CustName";//单元格提交数据 
                 sheet.OpenCell("I5").Value = dr["OrderNum"].ToString();
@@ -60,14 +63,10 @@ namespace POexcel.Controllers.Order
                 sheet.OpenCell("H18").SubmitName = "SalesName";//单元格提交数据
                 sheet.OpenCell("I16").SubmitName = "Amount";//单元格提交数据
                 sheet.OpenCell("I16").ReadOnly = true;//将Excel模版中有公式的单元格设置为只读格式，以免覆盖掉公式
-
                 string sql2 = "select * from OrderDetail where OrderID =" + dr["ID"];
-
                 SqliteCommand cmd2 = new SqliteCommand(sql2, conn);
                 cmd2.ExecuteNonQuery();
                 SqliteDataReader dr2 = cmd2.ExecuteReader();
-
-
                 //定义table对象
                 PageOfficeNetCore.ExcelWriter.Table tableD = sheet.OpenTable("D9:D15");//定义table对象
                 tableD.ReadOnly = true;//将table设置成只读
@@ -81,8 +80,8 @@ namespace POexcel.Controllers.Order
                 String quantity = "";
                 String price = "";
 
-                while (dr2.Read()) {
-
+                while (dr2.Read())
+                {
                     proCode = dr2["ProductCode"].ToString();
                     type = dr2["ProductType"].ToString();
                     unit = dr2["Unit"].ToString();
@@ -105,7 +104,6 @@ namespace POexcel.Controllers.Order
             conn.Close();
 
             pageofficeCtrl.SetWriter(workBook);
-
             pageofficeCtrl.AddCustomToolButton("保存并关闭", "Store", 1);
             pageofficeCtrl.AddCustomToolButton("全屏/还原", "SetScreen", 4);
             pageofficeCtrl.BorderStyle = PageOfficeNetCore.BorderStyleType.BorderThin;
@@ -115,23 +113,24 @@ namespace POexcel.Controllers.Order
             //打开Word文档
             pageofficeCtrl.WebOpen("/doc/" + fileName, PageOfficeNetCore.OpenModeType.xlsSubmitForm, "admin");
             ViewBag.POCtrl = pageofficeCtrl.GetHtmlCode("PageOfficeCtrl1");
-
+            ViewBag.Data = DateTime.Now.ToShortDateString() + "    " + "星期" + DateTime.Now.DayOfWeek.ToString(("D"));
+            ViewBag.userName = HttpContext.Session.GetString("UserName");
             return View();
         }
 
         public IActionResult NewOrder()
         {
-
-            
+            String userName = HttpContext.Session.GetString("UserName");
+            if (userName == null || userName.Length <= 0)
+            {
+                return Redirect("/Login");
+            }
             PageOfficeNetCore.PageOfficeCtrl pageofficeCtrl = new PageOfficeNetCore.PageOfficeCtrl(Request);
             pageofficeCtrl.ServerPage = "../PageOffice/POServer";
-
-
             // 填充数据
             PageOfficeNetCore.ExcelWriter.Workbook workBook = new PageOfficeNetCore.ExcelWriter.Workbook();
             //workBook.DisableSheetDoubleClick = true;
             PageOfficeNetCore.ExcelWriter.Sheet sheet = workBook.OpenSheet("销售订单");
-           
 
             sheet.OpenCell("D5").SubmitName = "CustName";
             sheet.OpenCell("I5").SubmitName = "OrderNum";
@@ -141,13 +140,9 @@ namespace POexcel.Controllers.Order
             sheet.OpenCell("D18").Value = Convert.ToString("admin");
             sheet.OpenCell("D18").SubmitName = "UserName";
             sheet.OpenCell("H18").SubmitName = "SalesName";
-     
             sheet.OpenTable("C9:H15").SubmitName = "OrderDetail";
             sheet.OpenCell("I16").SubmitName = "Amount";
-         
-
             sheet.OpenCell("I6").ReadOnly = true;//将Excel模版中有公式的单元格设置为只读格式，以免覆盖掉公式
-
             pageofficeCtrl.SetWriter(workBook);
 
             pageofficeCtrl.AddCustomToolButton("保存并关闭", "Store", 1);
@@ -159,36 +154,18 @@ namespace POexcel.Controllers.Order
             //打开Word文档
             pageofficeCtrl.WebOpen("/doc/" + fileName, PageOfficeNetCore.OpenModeType.xlsSubmitForm, "admin");
             ViewBag.POCtrl = pageofficeCtrl.GetHtmlCode("PageOfficeCtrl1");
+            ViewBag.Data = DateTime.Now.ToShortDateString() + "    " + "星期" + DateTime.Now.DayOfWeek.ToString(("D"));
+            ViewBag.userName = HttpContext.Session.GetString("UserName");
             return View();
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         public IActionResult ViewOrder()
         {
-
+            String userName = HttpContext.Session.GetString("UserName");
+            if (userName == null || userName.Length <= 0)
+            {
+                return Redirect("/Login");
+            }
             string id = Request.Query["ID"];
             string sql = "select * from OrderMaster where ID=" + id;
             SqliteConnection conn = new SqliteConnection(connString);
@@ -205,7 +182,6 @@ namespace POexcel.Controllers.Order
             PageOfficeNetCore.ExcelWriter.Sheet sheet = workBook.OpenSheet("销售订单");
             if (dr.Read())
             {
-
                 sheet.OpenCell("D5").Value = dr["CustName"].ToString();
                 sheet.OpenCell("D5").SubmitName = "CustName";//单元格提交数据 
                 sheet.OpenCell("I5").Value = dr["OrderNum"].ToString();
@@ -220,30 +196,23 @@ namespace POexcel.Controllers.Order
                 sheet.OpenCell("H18").SubmitName = "SalesName";//单元格提交数据
                 sheet.OpenCell("I16").SubmitName = "Amount";//单元格提交数据
                 sheet.OpenCell("I16").ReadOnly = true;//将Excel模版中有公式的单元格设置为只读格式，以免覆盖掉公式
-
                 string sql2 = "select * from OrderDetail where OrderID =" + dr["ID"];
-
                 SqliteCommand cmd2 = new SqliteCommand(sql2, conn);
                 cmd2.ExecuteNonQuery();
                 SqliteDataReader dr2 = cmd2.ExecuteReader();
-
-
                 //定义table对象
                 PageOfficeNetCore.ExcelWriter.Table tableD = sheet.OpenTable("D9:D15");//定义table对象
                 tableD.ReadOnly = true;//将table设置成只读
 
                 PageOfficeNetCore.ExcelWriter.Table table = sheet.OpenTable("C9:H15");
                 table.SubmitName = "OrderDetail"; //表提交数据
-
                 String proCode = "";
                 String type = "";
                 String unit = "";
                 String quantity = "";
                 String price = "";
-
                 while (dr2.Read())
                 {
-
                     proCode = dr2["ProductCode"].ToString();
                     type = dr2["ProductType"].ToString();
                     unit = dr2["Unit"].ToString();
@@ -256,10 +225,8 @@ namespace POexcel.Controllers.Order
                     table.DataFields[5].Value = price;
                     table.NextRow();
                 }
-
                 dr2.Close();
                 table.Close();//关闭table
-
             }
             dr.Close();
             conn.Close();
@@ -280,20 +247,22 @@ namespace POexcel.Controllers.Order
             //打开Word文档
             pageofficeCtrl.WebOpen("/doc/" + fileName, PageOfficeNetCore.OpenModeType.xlsReadOnly, "admin");
             ViewBag.POCtrl = pageofficeCtrl.GetHtmlCode("PageOfficeCtrl1");
-
+            ViewBag.Data = DateTime.Now.ToShortDateString() + "    " + "星期" + DateTime.Now.DayOfWeek.ToString(("D"));
+            ViewBag.userName = HttpContext.Session.GetString("UserName");
             return View();
         }
 
-
-
-
         public IActionResult OrderStat()
         {
-
+            String userName = HttpContext.Session.GetString("UserName");
+            if (userName == null || userName.Length <= 0)
+            {
+                return Redirect("/Login");
+            }
             string sql = "SELECT OrderMaster.SalesName as SalesName , OrderDetail.ProductName as ProductName , sum(OrderDetail.Quantity) as Quantity, sum(OrderDetail.Price * OrderDetail.Quantity) as amount "
             + "from OrderMaster,OrderDetail "
             + " where OrderMaster.ID = OrderDetail.OrderID  and OrderMaster.SalesName in('阿土伯','金贝贝','钱夫人','孙小美')  "
-            + " group by OrderMaster.SalesName, OrderDetail.ProductName";;
+            + " group by OrderMaster.SalesName, OrderDetail.ProductName"; ;
             SqliteConnection conn = new SqliteConnection(connString);
             conn.Open();
             SqliteCommand cmd = new SqliteCommand(sql, conn);
@@ -314,39 +283,36 @@ namespace POexcel.Controllers.Order
             int n = 0;
             while (dr.Read())
             {
-
                 salesName = dr["SalesName"].ToString();
                 qua = dr["Quantity"].ToString();
-                proName = dr["ProductName"].ToString(); 
+                proName = dr["ProductName"].ToString();
                 amount = dr["amount"].ToString();
-
-
                 if (!salesName.Equals(preSalesName))
                 {
                     columnId = 5 + n * 4;
                     n++;
                 }
                 preSalesName = salesName;
-                sheet.OpenCell("B" + columnId).Value=salesName;
+                sheet.OpenCell("B" + columnId).Value = salesName;
 
                 if (proName.Equals("笔记本"))
                 {
-                    sheet.OpenCell("C" + columnId).Value=proName;
-                    sheet.OpenCell("D" + columnId).Value=qua;
-                    sheet.OpenCell("E" + columnId).Value=amount;
+                    sheet.OpenCell("C" + columnId).Value = proName;
+                    sheet.OpenCell("D" + columnId).Value = qua;
+                    sheet.OpenCell("E" + columnId).Value = amount;
                 }
 
                 if (proName.Equals("服务器"))
                 {
-                    sheet.OpenCell("C" + (columnId + 1)).Value=proName;
-                    sheet.OpenCell("D" + (columnId + 1)).Value=qua;
-                    sheet.OpenCell("E" + (columnId + 1)).Value=amount;
+                    sheet.OpenCell("C" + (columnId + 1)).Value = proName;
+                    sheet.OpenCell("D" + (columnId + 1)).Value = qua;
+                    sheet.OpenCell("E" + (columnId + 1)).Value = amount;
                 }
                 if (proName.Equals("路由器"))
                 {
-                    sheet.OpenCell("C" + (columnId + 2)).Value=proName;
-                    sheet.OpenCell("D" + (columnId + 2)).Value=qua;
-                    sheet.OpenCell("E" + (columnId + 2)).Value=amount;
+                    sheet.OpenCell("C" + (columnId + 2)).Value = proName;
+                    sheet.OpenCell("D" + (columnId + 2)).Value = qua;
+                    sheet.OpenCell("E" + (columnId + 2)).Value = amount;
                 }
 
             }
@@ -369,16 +335,19 @@ namespace POexcel.Controllers.Order
             //打开Word文档
             pageofficeCtrl.WebOpen("/doc/" + fileName, PageOfficeNetCore.OpenModeType.xlsSubmitForm, "admin");
             ViewBag.POCtrl = pageofficeCtrl.GetHtmlCode("PageOfficeCtrl1");
-
+            ViewBag.Data = DateTime.Now.ToShortDateString() + "    " + "星期" + DateTime.Now.DayOfWeek.ToString(("D"));
+            ViewBag.userName = HttpContext.Session.GetString("UserName");
             return View();
         }
 
-
-
         public IActionResult OrderStat2()
         {
-
-            string sql = "SELECT OrderNum,OrderDate,CustName,SalesName,Amount from OrderMaster order by ID desc"; 
+            String userName = HttpContext.Session.GetString("UserName");
+            if (userName == null || userName.Length <= 0)
+            {
+                return Redirect("/Login");
+            }
+            string sql = "SELECT OrderNum,OrderDate,CustName,SalesName,Amount from OrderMaster order by ID desc";
             SqliteConnection conn = new SqliteConnection(connString);
             conn.Open();
             SqliteCommand cmd = new SqliteCommand(sql, conn);
@@ -397,101 +366,72 @@ namespace POexcel.Controllers.Order
             String custName = "";
             String amount = "";
             double totalMoney = 0.00;
-            
-
-
             while (dr.Read())
             {
-
                 orderNum = dr["OrderNum"].ToString();
-                date = dr["OrderDate"].ToString(); 
-                custName=dr["CustName"].ToString(); 
-                salesName = dr["SalesName"].ToString(); 
-                amount = dr["Amount"].ToString(); 
-
-                sheet.OpenCell("B" + (5 + rowCount)).Value=orderNum;
-
+                date = dr["OrderDate"].ToString();
+                custName = dr["CustName"].ToString();
+                salesName = dr["SalesName"].ToString();
+                amount = dr["Amount"].ToString();
+                sheet.OpenCell("B" + (5 + rowCount)).Value = orderNum;
                 sheet.OpenCell("C" + (5 + rowCount)).Value = date;
-               
-                sheet.OpenCell("D" + (5 + rowCount)).Value=custName;
-                sheet.OpenCell("E" + (5 + rowCount)).Value=salesName;
-                sheet.OpenCell("F" + (5 + rowCount)).Value=amount;
-
-
-
-         
+                sheet.OpenCell("D" + (5 + rowCount)).Value = custName;
+                sheet.OpenCell("E" + (5 + rowCount)).Value = salesName;
+                sheet.OpenCell("F" + (5 + rowCount)).Value = amount;
                 totalMoney += double.Parse(amount);
-
-
                 if (rowCount % 2 == 0)
                 {
                     //设置背景色
                     sheet.OpenTable(
                             "B" + (5 + rowCount) + ":F" + (5 + rowCount))
-                            .BackColor= Color.White;
+                            .BackColor = Color.White;
                 }
                 rowCount++;
-
             }
             dr.Close();
             conn.Close();
-
-
             //设置前景色
-            sheet.OpenTable("B5:F" + (rowCount + 4)).BackColor = Color.Gray;
-
-
-
+            sheet.OpenTable("B5:F" + (rowCount + 4)).BackColor = Color.White;
             //水平方向对齐方式
-            sheet.OpenTable("B5:F" + (rowCount + 4)).HorizontalAlignment=
+            sheet.OpenTable("B5:F" + (rowCount + 4)).HorizontalAlignment =
                     PageOfficeNetCore.ExcelWriter.XlHAlign.xlHAlignLeft;
-            sheet.OpenTable("C5:C" + (rowCount + 4)).HorizontalAlignment=
+            sheet.OpenTable("C5:C" + (rowCount + 4)).HorizontalAlignment =
                      PageOfficeNetCore.ExcelWriter.XlHAlign.xlHAlignCenter;
-            sheet.OpenTable("E5:E" + (rowCount + 4)).HorizontalAlignment=
+            sheet.OpenTable("E5:E" + (rowCount + 4)).HorizontalAlignment =
                      PageOfficeNetCore.ExcelWriter.XlHAlign.xlHAlignCenter;
-            sheet.OpenTable("F5:F" + (rowCount + 4)).HorizontalAlignment=
+            sheet.OpenTable("F5:F" + (rowCount + 4)).HorizontalAlignment =
                      PageOfficeNetCore.ExcelWriter.XlHAlign.xlHAlignRight;
             //竖直方向对齐方式
-            sheet.OpenTable("B5:F" + (rowCount + 4)).VerticalAlignment=
+            sheet.OpenTable("B5:F" + (rowCount + 4)).VerticalAlignment =
                      PageOfficeNetCore.ExcelWriter.XlVAlign.xlVAlignCenter;
-
             //合计：
-
             //合并单元格
             sheet.OpenTable("B" + (rowCount + 5) + ":F" + (rowCount + 5))
                     .Merge();
             //行高
-            sheet.OpenTable("B5:F" + (rowCount + 6)).RowHeight=18;
+            sheet.OpenTable("B5:F" + (rowCount + 6)).RowHeight = 18;
             sheet.OpenTable("B" + (rowCount + 5) + ":F" + (rowCount + 6))
-                    .HorizontalAlignment= PageOfficeNetCore.ExcelWriter.XlHAlign.xlHAlignLeft;
-            sheet.OpenTable("B" + (rowCount + 5) + ":F" + (rowCount + 6)).VerticalAlignment= PageOfficeNetCore.ExcelWriter.XlVAlign.xlVAlignCenter;
-
-            sheet.OpenCell("B" + (rowCount + 6)).Value="合计";
-            sheet.OpenTable("C" + (rowCount + 6) + ":E" + (rowCount + 6))
-                    .Merge();
-
-            sheet.OpenCell("F" + (rowCount + 6)).Value= totalMoney.ToString();
-
+                    .HorizontalAlignment = PageOfficeNetCore.ExcelWriter.XlHAlign.xlHAlignLeft;
+            sheet.OpenTable("B" + (rowCount + 5) + ":F" + (rowCount + 6)).VerticalAlignment = PageOfficeNetCore.ExcelWriter.XlVAlign.xlVAlignCenter;
+            sheet.OpenCell("B" + (rowCount + 6)).Value = "合计";
+            sheet.OpenTable("C" + (rowCount + 6) + ":E" + (rowCount + 6)).Merge();
+            sheet.OpenCell("F" + (rowCount + 6)).Value = totalMoney.ToString();
 
 
             sheet.OpenTable("F" + (rowCount + 6) + ":F" + (rowCount + 6))
-                    .HorizontalAlignment= PageOfficeNetCore.ExcelWriter.XlHAlign.xlHAlignRight;
+                    .HorizontalAlignment = PageOfficeNetCore.ExcelWriter.XlHAlign.xlHAlignRight;
             sheet.OpenTable("B" + (rowCount + 6) + ":F" + (rowCount + 6))
-                    .VerticalAlignment= PageOfficeNetCore.ExcelWriter.XlVAlign.xlVAlignCenter;
-
+                    .VerticalAlignment = PageOfficeNetCore.ExcelWriter.XlVAlign.xlVAlignCenter;
             //设置字体：大小、名称
-            sheet.OpenTable("B5:F" + (rowCount + 6)).Font.Size=9;
-            sheet.OpenTable("B5:F" + (rowCount + 6)).Font.Name="宋体";
+            sheet.OpenTable("B5:F" + (rowCount + 6)).Font.Size = 9;
+            sheet.OpenTable("B5:F" + (rowCount + 6)).Font.Name = "宋体";
 
             //设置Table的边框样式：样式、宽度、颜色(多种边框样式重叠时，需创建Table对象才可实现样式的叠加覆盖)
-            PageOfficeNetCore.ExcelWriter.Table table = sheet.OpenTable("B" + (rowCount + 6) + ":F"+ (rowCount + 6));
-            table.Border.BorderType= PageOfficeNetCore.ExcelWriter.XlBorderType.xlTopEdge;
-            table.Border.Weight= PageOfficeNetCore.ExcelWriter.XlBorderWeight.xlThin;
-            table.Border.LineColor=Color.Red;
-
+            PageOfficeNetCore.ExcelWriter.Table table = sheet.OpenTable("B" + (rowCount + 6) + ":F" + (rowCount + 6));
+            table.Border.BorderType = PageOfficeNetCore.ExcelWriter.XlBorderType.xlTopEdge;
+            table.Border.Weight = PageOfficeNetCore.ExcelWriter.XlBorderWeight.xlThin;
+            table.Border.LineColor = Color.Red;
             table.Close();
-
-
 
             workBook.DisableSheetSelection = true;
             pageofficeCtrl.SetWriter(workBook);
@@ -508,17 +448,39 @@ namespace POexcel.Controllers.Order
             //打开Word文档
             pageofficeCtrl.WebOpen("/doc/" + fileName, PageOfficeNetCore.OpenModeType.xlsSubmitForm, "admin");
             ViewBag.POCtrl = pageofficeCtrl.GetHtmlCode("PageOfficeCtrl1");
-
+            ViewBag.Data = DateTime.Now.ToShortDateString() + "    " + "星期" + DateTime.Now.DayOfWeek.ToString(("D"));
+            ViewBag.userName = HttpContext.Session.GetString("UserName");
             return View();
         }
 
 
+        public IActionResult delete()
+        {
+            String userName = HttpContext.Session.GetString("UserName");
+            if (userName == null || userName.Length <= 0)
+            {
+                return Redirect("/Login");
+            }
+            string id = Request.Query["id"];
+            if (id != null && id.Length > 0)
+            {
+                string sql = "delete from OrderMaster where ID=" + id;
+                SqliteConnection conn = new SqliteConnection(connString);
+                conn.Open();
+                SqliteCommand cmd = new SqliteCommand(sql, conn);
+                int result = cmd.ExecuteNonQuery();
+            }
+            return Redirect("/");
 
-
+        }
 
         public async Task<ActionResult> UpdateOrder()
         {
-            
+            String userName = HttpContext.Session.GetString("UserName");
+            if (userName == null || userName.Length <= 0)
+            {
+                return Redirect("/Login");
+            }
             PageOfficeNetCore.ExcelReader.Workbook workBook = new PageOfficeNetCore.ExcelReader.Workbook(Request, Response);
             await workBook.LoadAsync();
             string id = Request.Query["ID"];
@@ -527,11 +489,10 @@ namespace POexcel.Controllers.Order
             SqliteConnection conn = new SqliteConnection(connString);
             conn.Open();
             SqliteCommand cmd = new SqliteCommand(sql, conn);
-            
             PageOfficeNetCore.ExcelReader.Sheet sheet = workBook.OpenSheet("销售订单");
 
-
-            if (id != null && id.Length > 0) {
+            if (id != null && id.Length > 0)
+            {
                 int num;
                 //保存客户信息
                 num = UpdateOrInsertCustInfo(cmd, id, workBook, sheet, 0);
@@ -567,14 +528,9 @@ namespace POexcel.Controllers.Order
 
             else
             {
-            
                 int maxId = 0;//OrderMaster表中最大ID号
                 sql = "select max(ID) from OrderMaster ";
                 cmd.CommandText = sql;
-
-
-
-
                 try
                 {
                     object obj = cmd.ExecuteScalar();
@@ -593,9 +549,7 @@ namespace POexcel.Controllers.Order
                 {
                     strErrHtml += "新建订单失败，失败原因为：" + ex.Message;
                 }
-               
             }
-
 
             if (strErrHtml.Length > 0)
             {
@@ -603,12 +557,9 @@ namespace POexcel.Controllers.Order
                 workBook.ShowPage(410, 260);
                 workBook.CustomSaveResult = "error";
                 await Response.Body.WriteAsync(Encoding.GetEncoding("GB2312").GetBytes(strErrHtml));
-
             }
             workBook.Close();
-            
             conn.Close();
-
             return Content("OK");
         }
 
@@ -651,57 +602,54 @@ namespace POexcel.Controllers.Order
         }
 
         private int UpdateOrInsertCustInfo(SqliteCommand cmd, string cid, Workbook workBook, Sheet sheet, int maxId)
+        {
+
+            string sql = "";
+            string custName = sheet.OpenCell("CustName").Value.Trim();//获取提交信息，客户名称
+            string orderId = sheet.OpenCell("OrderNum").Value;//获取提交信息，订单编号
+            string district = sheet.OpenCell("CustDistrict").Value;//获取提交信息，客户所在区域
+            string date = DateTime.Now.ToString("yyyy-MM-dd");
+
+
+            string salesName = sheet.OpenCell("SalesName").Value;//获取提交信息，销售人员姓名
+            string amount = sheet.OpenCell("Amount").Value;//获取提交信息，销售金额
+            int num = 0;
+
+            if (custName.Trim().Length > 0)
             {
-
-                string sql = "";
-                string custName = sheet.OpenCell("CustName").Value.Trim();//获取提交信息，客户名称
-                string orderId = sheet.OpenCell("OrderNum").Value;//获取提交信息，订单编号
-                string district = sheet.OpenCell("CustDistrict").Value;//获取提交信息，客户所在区域
-                string date = DateTime.Now.ToString("yyyy-MM-dd");
-
-
-                string salesName = sheet.OpenCell("SalesName").Value;//获取提交信息，销售人员姓名
-                string amount = sheet.OpenCell("Amount").Value;//获取提交信息，销售金额
-                int num = 0;
-
-                if (custName.Trim().Length > 0)
+                if (cid.Trim() != "")
                 {
-                    if (cid.Trim() != "")
-                    {
-                        sql = "Update OrderMaster set orderNum = '" + orderId + "',MakerName = '" + "admin"
-            + "',CustName='" + custName + "',CustDistrict='" + district + "',SalesName = '" + salesName
-            + "' ,Amount= " + amount + " where ID = " + cid;
-                }
-                    else
-                    {
-                        sql = "Insert into OrderMaster values(" + (maxId + 1) + ",'" + orderId + "','" + date + "','" + custName + "','"
-                            + district + "','" + "admin" + "','" + salesName + "'," + amount + ")";
-                    }
-
-                    try
-                    {
-                        
-                        cmd.CommandText = sql;
-                        num = cmd.ExecuteNonQuery();//更新客户信息
-                    }
-                    catch (Exception ex)
-                    {
-
-                        strErrHtml += "保存失败，失败原因为：" + ex.Message + "\n";
-                    }
+                    sql = "Update OrderMaster set orderNum = '" + orderId + "',MakerName = '" + "admin"
+        + "',CustName='" + custName + "',CustDistrict='" + district + "',SalesName = '" + salesName
+        + "' ,Amount= " + amount + " where ID = " + cid;
                 }
                 else
                 {
-                    if (custName.Trim().Length <= 0)
-                    {
-                        strErrHtml += "请填写订单信息！\n";
-                    }
+                    sql = "Insert into OrderMaster values(" + (maxId + 1) + ",'" + orderId + "','" + date + "','" + custName + "','"
+                        + district + "','" + "admin" + "','" + salesName + "'," + amount + ")";
                 }
 
-                return num;
+                try
+                {
 
+                    cmd.CommandText = sql;
+                    num = cmd.ExecuteNonQuery();//更新客户信息
+                }
+                catch (Exception ex)
+                {
+
+                    strErrHtml += "保存失败，失败原因为：" + ex.Message + "\n";
+                }
             }
+            else
+            {
+                if (custName.Trim().Length <= 0)
+                {
+                    strErrHtml += "请填写订单信息！\n";
+                }
+            }
+            return num;
         }
-
-
     }
+
+}
